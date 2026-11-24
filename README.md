@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>See and control your iPhone from your Mac — an open-source alternative to iPhone Mirroring that works in the EU.</b><br>
-  USB or Wi-Fi · no jailbreak · no VPN or region change · no cloud
+  Up to 60 fps over USB · Wi-Fi · no jailbreak · no VPN or region change · no cloud
 </p>
 
 <p align="center">
@@ -115,18 +115,20 @@ Hover over the window to show the control bar. Drag the black bezel to move the 
 ## How it works
 
 ```
-┌──────────── Mac ─────────────┐   USB or Wi-Fi (usbmuxd)    ┌──────── iPhone ────────┐
-│ OpenMirror.app               │                             │ WebDriverAgent         │
-│  • USB capture (AVFoundation) ◀── 60 fps video + sound ───┤  screen-capture device │
-│  • MJPEG viewer  ◀───────────┼──── screen stream :9100 ────┤  (XCTest UI runner,   │
-│  • gestures/text ────────────┼──── REST commands :8100 ───▶│   signed by your team) │
-│  • usbmux tunnel (Swift)     │                             │                        │
-│  • xcodebuild launcher       │                             │                        │
-└──────────────────────────────┘                             └────────────────────────┘
+┌──────────── Mac ─────────────┐                              ┌──────── iPhone ─────────┐
+│ OpenMirror.app               │  USB: 60 fps video + sound   │ screen-capture device   │
+│  • live view (AVFoundation) ◀┼──────────────────────────────┤ (same as QuickTime)     │
+│  • MJPEG viewer (fallback)  ◀┼── screen stream :9100 ───────┤ WebDriverAgent          │
+│  • gestures / text ──────────┼── REST commands :8100 ──────▶│ (XCTest UI runner,      │
+│  • usbmux tunnel (Swift)     │   USB or Wi-Fi (usbmuxd)     │  signed by your team)   │
+│  • xcodebuild launcher       │                              │                         │
+└──────────────────────────────┘                              └─────────────────────────┘
 ```
 
+- **Video over USB** comes from the iPhone screen-capture device that macOS exposes to AVFoundation
+  (the path QuickTime uses) – up to 60 fps, native resolution, with sound.
 - **WebDriverAgent** (from the Appium project) is Apple-sanctioned UI-test tooling. It can tap, swipe and type
-  anywhere on the phone and serves the screen as an MJPEG stream.
+  anywhere on the phone and also serves the screen as an MJPEG stream (used over Wi-Fi).
 - OpenMirror launches it with `xcodebuild test-without-building` and talks to it through its own
   **usbmuxd tunnel written in Swift** – the same channel Finder and Xcode use, for both cable and Wi-Fi. No Python, no extra daemons.
 - All app state lives in `~/Library/Application Support/OpenMirror` (WebDriverAgent sources, build, logs).
