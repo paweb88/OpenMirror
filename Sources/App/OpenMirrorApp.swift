@@ -21,6 +21,7 @@ struct OpenMirrorApp: App {
                 Button("Lock") { model.lock() }
                 Divider()
                 Toggle("Keep on Top", isOn: $model.keepOnTop).keyboardShortcut("t", modifiers: [.command, .shift])
+                Toggle("Show Frame Rate", isOn: $model.showFrameRate).keyboardShortcut("f", modifiers: [.command, .shift])
                 Divider()
                 Button("Reconnect") { model.connect() }.keyboardShortcut("r", modifiers: [.command])
             }

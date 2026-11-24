@@ -25,6 +25,7 @@ for developers (Xcode and XCTest). Everything runs locally – over a USB cable 
 
 ## Features
 
+- ⚡ **Up to 60 fps with sound over USB** – uses the iPhone screen-capture device macOS provides (the same one QuickTime uses)
 - 📱 **Floating phone window** – borderless, with a device frame; drag it by the bezel
 - 🖱️ **Click = tap, drag = swipe, click-and-hold = long press** (pause before dragging to move icons)
 - 🖐️ **Trackpad scrolling** becomes swipes on the phone
@@ -75,7 +76,9 @@ open build/Build/Products/Release/OpenMirror.app
 3. **First launch only:** OpenMirror downloads [WebDriverAgent](https://github.com/appium/WebDriverAgent)
    and builds it for your iPhone, signed with your team. This takes 1–2 minutes.
 4. If the iPhone asks, trust the developer: **Settings → General → VPN & Device Management → your Apple ID → Trust**.
-5. The phone appears on your Mac. 🎉
+5. macOS asks to let OpenMirror use the **camera** – allow it. That is how macOS names the iPhone's
+   screen-capture device; your Mac's camera is never used. (Sound may also ask for microphone access.)
+6. The phone appears on your Mac. 🎉
 
 <p align="center">
   <img src="docs/screenshot-connecting.png" width="240" alt="Connecting screen">
@@ -104,6 +107,7 @@ Connect the iPhone by cable once, open **Finder → your iPhone → General** an
 | ⇧⌘H | Home |
 | ⇧⌘A | App Switcher |
 | ⇧⌘T | Keep window on top |
+| ⇧⌘F | Show frame rate |
 | ⌘R | Reconnect |
 
 Hover over the window to show the control bar. Drag the black bezel to move the window.
@@ -113,6 +117,7 @@ Hover over the window to show the control bar. Drag the black bezel to move the 
 ```
 ┌──────────── Mac ─────────────┐   USB or Wi-Fi (usbmuxd)    ┌──────── iPhone ────────┐
 │ OpenMirror.app               │                             │ WebDriverAgent         │
+│  • USB capture (AVFoundation) ◀── 60 fps video + sound ───┤  screen-capture device │
 │  • MJPEG viewer  ◀───────────┼──── screen stream :9100 ────┤  (XCTest UI runner,   │
 │  • gestures/text ────────────┼──── REST commands :8100 ───▶│   signed by your team) │
 │  • usbmux tunnel (Swift)     │                             │                        │
@@ -129,16 +134,18 @@ Hover over the window to show the control bar. Drag the black bezel to move the 
 ## Known limitations
 
 - **"Automation Running"** is shown on the iPhone while mirroring – iOS displays it for every XCTest session.
-- **Frame rate:** ~25–30 fps (MJPEG, 50 % scale). Fine for using apps, not for games.
+- **Frame rate:** up to 60 fps over USB (frames are sent when the screen changes). Over Wi-Fi, or if
+  screen capture is unavailable, OpenMirror falls back to WebDriverAgent's MJPEG stream (~25–30 fps).
+  Turn on **iPhone → Show Frame Rate** (⇧⌘F) to see the current source and fps.
 - **Typing** is sent in bursts: iOS treats injected text like a hardware keyboard and briefly hides the on-screen
   keyboard, so text is composed on the Mac and sent at once.
 - The iPhone must be **unlocked** to start; OpenMirror never handles your passcode.
-- **No audio.**
+- Sound works over USB only.
 - Over Wi-Fi smoothness depends on your network; the cable is the most stable.
 
 ## Roadmap
 
-- [ ] 60 fps video via the iOS screen-capture device (the path QuickTime uses), keeping WebDriverAgent for input
+- [x] 60 fps video + sound via the iOS screen-capture device (the path QuickTime uses)
 - [x] Signed, notarized release builds
 - [ ] Drag & drop files / photos to the iPhone
 
@@ -182,7 +189,8 @@ swift scripts/transparent-shot.swift capture.jpg docs/screenshot.png 170   # tra
 | `Sources/Core/PortForwarder.swift` | localhost → iPhone TCP tunnel |
 | `Sources/Core/WDARunner.swift` | download, build and launch WebDriverAgent |
 | `Sources/Core/WDAClient.swift` | WebDriverAgent REST client |
-| `Sources/Core/MJPEGStream.swift` | MJPEG stream parser |
+| `Sources/Core/ScreenCapture.swift` | USB screen capture (CoreMediaIO / AVFoundation), 60 fps + sound |
+| `Sources/Core/MJPEGStream.swift` | MJPEG stream parser (Wi-Fi fallback) |
 | `Sources/Core/GestureMapper.swift` | mouse / trackpad / keys → phone gestures |
 | `Sources/UI/` | SwiftUI window, device frame, control bar, compose field |
 

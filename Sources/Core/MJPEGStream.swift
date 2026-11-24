@@ -31,6 +31,9 @@ final class MJPEGStream: NSObject, URLSessionDataDelegate {
     private let onFrame: (NSImage) -> Void
     private let onDisconnect: () -> Void
     private var parser = MJPEGParser()
+    private var frameCount = 0
+    private var windowStart = Date()
+    var onFPS: ((Double) -> Void)?
     private var session: URLSession?
 
     init(url: URL, onFrame: @escaping (NSImage) -> Void, onDisconnect: @escaping () -> Void) {
@@ -54,6 +57,14 @@ final class MJPEGStream: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let frame = parser.append(data), let image = NSImage(data: frame) else { return }
+        frameCount += 1
+        let elapsed = Date().timeIntervalSince(windowStart)
+        if elapsed >= 2 {
+            let fps = Double(frameCount) / elapsed
+            frameCount = 0
+            windowStart = Date()
+            DispatchQueue.main.async { self.onFPS?(fps) }
+        }
         DispatchQueue.main.async { self.onFrame(image) }
     }
 

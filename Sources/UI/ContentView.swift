@@ -37,13 +37,16 @@ struct ContentView: View {
     @ViewBuilder
     private var screen: some View {
         if model.phase == .connected {
-            PhoneScreenView(image: model.frame, takesKeyFocus: !model.isComposing) { handle($0) }
+            PhoneScreenView(image: model.frame, captureSession: model.captureSession, takesKeyFocus: !model.isComposing) { handle($0) }
                 .overlay(alignment: .bottom) {
                     if model.isComposing {
                         ComposeBar().transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .animation(.easeOut(duration: 0.15), value: model.isComposing)
+                .overlay(alignment: .topLeading) {
+                    if model.showFrameRate { FrameRateBadge() }
+                }
         } else {
             StatusView().environment(\.colorScheme, .dark)
         }
@@ -157,5 +160,21 @@ struct TeamPicker: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(!SigningTeams.isValidTeamID(model.teamID))
         }
+    }
+}
+
+/// Small diagnostic badge: video source and measured frame rate.
+struct FrameRateBadge: View {
+    @EnvironmentObject private var model: MirrorModel
+
+    var body: some View {
+        let source = model.videoSource == .usbCapture ? "USB capture" : "MJPEG"
+        Text("\(source) · \(Int(model.framesPerSecond.rounded())) fps")
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(.black.opacity(0.6), in: Capsule())
+            .padding(.top, 54).padding(.leading, 14)
+            .allowsHitTesting(false)
     }
 }

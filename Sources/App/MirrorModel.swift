@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Foundation
 
 /// Orchestrates: find iPhone → build/launch WebDriverAgent → USB tunnels → video + input.
@@ -13,6 +14,12 @@ final class MirrorModel: ObservableObject {
         case failed(String)
     }
 
+    enum VideoSource: Equatable {
+        case none
+        case usbCapture
+        case mjpeg
+    }
+
     static let wdaPort: UInt16 = 8100
     static let mjpegPort: UInt16 = 9100
     static let localWDAPort: UInt16 = 18100
@@ -22,6 +29,11 @@ final class MirrorModel: ObservableObject {
 
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var frame: NSImage?
+    /// Live USB screen capture (60 fps + sound); nil when falling back to the MJPEG stream.
+    @Published private(set) var captureSession: AVCaptureSession?
+    @Published private(set) var videoSource: VideoSource = .none
+    @Published private(set) var framesPerSecond: Double = 0
+    @Published var showFrameRate = false
     @Published private(set) var screenSize = ScreenSize(width: 440, height: 956)
     @Published var teamID: String = UserDefaults.standard.string(forKey: teamDefaultsKey) ?? ""
     @Published var keepOnTop: Bool = UserDefaults.standard.bool(forKey: onTopDefaultsKey) {
@@ -33,6 +45,7 @@ final class MirrorModel: ObservableObject {
     private let client = WDAClient(baseURL: URL(string: "http://127.0.0.1:\(localWDAPort)")!)
     private var forwarders: [PortForwarder] = []
     private var stream: MJPEGStream?
+    private var capture: ScreenCapture?
     private var connectTask: Task<Void, Never>?
     private var commandChain: Task<Void, Never>?
     @Published var composeText = ""
@@ -77,6 +90,10 @@ final class MirrorModel: ObservableObject {
         connectTask?.cancel()
         stream?.stop()
         stream = nil
+        capture?.stop()
+        capture = nil
+        captureSession = nil
+        videoSource = .none
         forwarders.forEach { $0.stop() }
         forwarders = []
         runner.stop()
@@ -102,7 +119,7 @@ final class MirrorModel: ObservableObject {
             }
             try await waitForWDA()
             screenSize = try await client.screenSize()
-            startStream()
+            await startVideo(device: device)
             phase = .connected
         } catch is CancellationError {
             return
@@ -138,6 +155,26 @@ final class MirrorModel: ObservableObject {
         throw MirrorError.wdaTimeout
     }
 
+    /// Prefers the 60 fps USB capture device; falls back to WebDriverAgent's MJPEG stream (Wi-Fi, errors).
+    private func startVideo(device: UsbmuxDevice) async {
+        if device.connectionType == "USB" {
+            phase = .working("Starting video…")
+            let capture = ScreenCapture()
+            do {
+                capture.onFPS = { [weak self] fps in self?.framesPerSecond = fps }
+                try await capture.start(udid: device.udid)
+                self.capture = capture
+                captureSession = capture.session
+                videoSource = .usbCapture
+                return
+            } catch {
+                NSLog("OpenMirror: USB capture unavailable, using MJPEG: \(error.localizedDescription)")
+            }
+        }
+        videoSource = .mjpeg
+        startStream()
+    }
+
     private func startStream() {
         stream?.stop()
         let url = URL(string: "http://127.0.0.1:\(Self.localMJPEGPort)")!
@@ -150,6 +187,7 @@ final class MirrorModel: ObservableObject {
                 if self.phase == .connected { self.startStream() }
             }
         })
+        stream?.onFPS = { [weak self] fps in self?.framesPerSecond = fps }
         stream?.start()
     }
 

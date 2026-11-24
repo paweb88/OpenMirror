@@ -156,3 +156,21 @@ final class ComposeTests: XCTestCase {
         XCTAssertEqual(model.composeText, "")
     }
 }
+
+final class ScreenCaptureTests: XCTestCase {
+    func testMatchesUDIDWithOrWithoutDashes() {
+        XCTAssertTrue(ScreenCapture.matches(uniqueID: "00001111222233334444AAAA", udid: "00001111-222233334444AAAA"))
+        XCTAssertTrue(ScreenCapture.matches(uniqueID: "00001111-222233334444aaaa", udid: "00001111-222233334444AAAA"))
+        XCTAssertFalse(ScreenCapture.matches(uniqueID: "FaceTime HD Camera", udid: "00001111-222233334444AAAA"))
+    }
+
+    func testChoosesIOSDeviceWhenMacAssignsItsOwnUUID() {
+        let candidates = [(uniqueID: "0x1100000000001", modelID: "UVC Camera"),
+                          (uniqueID: "1A2B3C4D-0000-4000-8000-000000000001", modelID: "iOS Device")]
+        XCTAssertEqual(ScreenCapture.chooseDevice(candidates, udid: "00001111-222233334444AAAA"), 1)
+    }
+
+    func testIgnoresRegularCameras() {
+        XCTAssertNil(ScreenCapture.chooseDevice([(uniqueID: "cam", modelID: "UVC Camera")], udid: "X"))
+    }
+}

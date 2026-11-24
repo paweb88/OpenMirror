@@ -1,9 +1,11 @@
 import AppKit
+import AVFoundation
 import SwiftUI
 
 /// Shows the mirrored frame and turns mouse, trackpad and keyboard input into phone gestures.
 struct PhoneScreenView: NSViewRepresentable {
     let image: NSImage?
+    var captureSession: AVCaptureSession?
     var takesKeyFocus = true
     let onGesture: (InputEvent) -> Void
 
@@ -22,7 +24,8 @@ struct PhoneScreenView: NSViewRepresentable {
 
     func updateNSView(_ view: InputView, context: Context) {
         view.onEvent = onGesture
-        view.layer?.contents = image
+        view.showCapture(captureSession)
+        if captureSession == nil { view.layer?.contents = image }
         if takesKeyFocus, let window = view.window, window.firstResponder !== view {
             DispatchQueue.main.async { window.makeFirstResponder(view) }
         }
@@ -44,6 +47,23 @@ struct PhoneScreenView: NSViewRepresentable {
         }
 
         required init?(coder: NSCoder) { nil }
+
+        private var previewLayer: AVCaptureVideoPreviewLayer?
+
+        /// Live capture is drawn by a preview layer (GPU, no copies); MJPEG frames go into layer.contents.
+        func showCapture(_ session: AVCaptureSession?) {
+            guard previewLayer?.session !== session else { return }
+            previewLayer?.removeFromSuperlayer()
+            previewLayer = nil
+            guard let session, let layer else { return }
+            layer.contents = nil
+            let preview = AVCaptureVideoPreviewLayer(session: session)
+            preview.videoGravity = .resize
+            preview.frame = bounds
+            preview.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer.addSublayer(preview)
+            previewLayer = preview
+        }
 
         override var acceptsFirstResponder: Bool { true }
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

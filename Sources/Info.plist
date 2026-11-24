@@ -24,6 +24,10 @@
 	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>OpenMirror shows your iPhone's screen through the screen-capture device macOS provides for connected iPhones (the same one QuickTime uses). Your Mac's camera is not used.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OpenMirror plays your iPhone's sound on the Mac. Your Mac's microphone is not used.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>MIT License</string>
 </dict>
