@@ -159,15 +159,15 @@ final class ComposeTests: XCTestCase {
 
 final class ScreenCaptureTests: XCTestCase {
     func testMatchesUDIDWithOrWithoutDashes() {
-        XCTAssertTrue(ScreenCapture.matches(uniqueID: "00001111222233334444AAAA", udid: "00001111-222233334444AAAA"))
-        XCTAssertTrue(ScreenCapture.matches(uniqueID: "00001111-222233334444aaaa", udid: "00001111-222233334444AAAA"))
-        XCTAssertFalse(ScreenCapture.matches(uniqueID: "FaceTime HD Camera", udid: "00001111-222233334444AAAA"))
+        XCTAssertTrue(ScreenCapture.matches(uniqueID: "TESTUDID0001", udid: "TEST-UDID-0001"))
+        XCTAssertTrue(ScreenCapture.matches(uniqueID: "test-udid-0001", udid: "TEST-UDID-0001"))
+        XCTAssertFalse(ScreenCapture.matches(uniqueID: "FaceTime HD Camera", udid: "TEST-UDID-0001"))
     }
 
     func testChoosesIOSDeviceWhenMacAssignsItsOwnUUID() {
-        let candidates = [(uniqueID: "0x1100000000001", modelID: "UVC Camera"),
-                          (uniqueID: "1A2B3C4D-0000-4000-8000-000000000001", modelID: "iOS Device")]
-        XCTAssertEqual(ScreenCapture.chooseDevice(candidates, udid: "00001111-222233334444AAAA"), 1)
+        let candidates = [(uniqueID: "TEST-CAMERA", modelID: "UVC Camera"),
+                          (uniqueID: "MAC-ASSIGNED-UUID", modelID: "iOS Device")]
+        XCTAssertEqual(ScreenCapture.chooseDevice(candidates, udid: "TEST-UDID-0001"), 1)
     }
 
     func testIgnoresRegularCameras() {
