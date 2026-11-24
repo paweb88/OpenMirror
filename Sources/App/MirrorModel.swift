@@ -53,6 +53,9 @@ final class MirrorModel: ObservableObject {
 
     var logFile: URL { runner.logFile }
 
+    /// Unit tests host the app; it must never reach out to a real iPhone then.
+    static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     init() {
         if teamID.isEmpty, availableTeams.count == 1 { teamID = availableTeams[0].teamID }
         applyDemoArguments(ProcessInfo.processInfo.arguments)
@@ -94,9 +97,24 @@ final class MirrorModel: ObservableObject {
         capture = nil
         captureSession = nil
         videoSource = .none
+        if !forwarders.isEmpty { Self.shutdownWDA() }  // ends "Automation Running" on the iPhone
         forwarders.forEach { $0.stop() }
         forwarders = []
         runner.stop()
+    }
+
+    /// Asks WebDriverAgent to stop its test session so iOS removes the "Automation Running" banner.
+    /// Killing xcodebuild alone can leave the runner alive on the phone. Blocks for at most ~2 s.
+    nonisolated static func shutdownWDA(timeout: TimeInterval = 2) {
+        guard let url = URL(string: "http://127.0.0.1:\(localWDAPort)/wda/shutdown") else { return }
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        request.httpMethod = "GET"
+        let done = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: request) { _, _, error in
+            if let error { NSLog("OpenMirror: WDA shutdown failed: \(error.localizedDescription)") }
+            done.signal()
+        }.resume()
+        _ = done.wait(timeout: .now() + timeout)
     }
 
     private func runConnection() async {

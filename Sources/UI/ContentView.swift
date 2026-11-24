@@ -22,7 +22,7 @@ struct ContentView: View {
         .animation(.easeOut(duration: 0.18), value: hovering)
         .onHover { if !Self.pinnedControls { hovering = $0 } }
         .background(WindowConfigurator(keepOnTop: model.keepOnTop, screen: model.screenSize))
-        .onAppear { if model.phase == .idle { model.connect() } }
+        .onAppear { if model.phase == .idle, !MirrorModel.isRunningTests { model.connect() } }
     }
 
     private static let pinnedControls = ProcessInfo.processInfo.arguments.contains("--show-controls")
