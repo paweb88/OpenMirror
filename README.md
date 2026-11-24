@@ -44,7 +44,14 @@ for developers (Xcode and XCTest). Everything runs locally – over a USB cable 
 | Apple ID | Signed in to Xcode → Settings → Accounts. **A free Apple ID works** (the helper then expires after 7 days and is rebuilt automatically); a paid developer account lasts a year |
 | iPhone | Connected by **USB cable** (or on the same Wi-Fi – see below), unlocked, "Trust This Computer" accepted, **Developer Mode** on (Settings → Privacy & Security → Developer Mode) |
 
-## Install
+## Download
+
+**[⬇︎ Download OpenMirror for macOS](https://github.com/paweb88/OpenMirror/releases/latest)** – signed with Developer ID and notarized by Apple.
+
+Open the `.dmg`, drag **OpenMirror** to **Applications** and start it. You still need **Xcode** installed
+(OpenMirror uses it to sign and launch the helper on your iPhone with your own Apple ID).
+
+## Build from source
 
 ```bash
 brew install xcodegen
@@ -132,7 +139,7 @@ Hover over the window to show the control bar. Drag the black bezel to move the 
 ## Roadmap
 
 - [ ] 60 fps video via the iOS screen-capture device (the path QuickTime uses), keeping WebDriverAgent for input
-- [ ] Signed, notarized release builds
+- [x] Signed, notarized release builds
 - [ ] Drag & drop files / photos to the iPhone
 
 ## Troubleshooting
@@ -151,6 +158,12 @@ Hover over the window to show the control bar. Drag the black bezel to move the 
 ```bash
 xcodegen && xcodebuild test -project OpenMirror.xcodeproj -scheme OpenMirror -destination 'platform=macOS'
 swift scripts/make-icon.swift Sources/Assets.xcassets/AppIcon.appiconset   # regenerate the icon
+```
+
+**Signed release** (Developer ID certificate + `xcrun notarytool store-credentials openmirror-notary …` once):
+
+```bash
+scripts/release.sh <TEAM_ID>   # → build/release/OpenMirror-<version>.dmg, signed, notarized and stapled
 ```
 
 **Screenshots without personal data** – demo mode shows a generated screen instead of your phone:
